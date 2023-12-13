@@ -104,23 +104,25 @@ def submit(day, year, part, solution):
     url = 'https://adventofcode.com/%s/day/%s/answer' % (year, day)
     data = {'level': part, 'answer': solution}
     session_cookie = 'session=%s' % os.getenv('SESSION_COOKIE')
-    answer = requests.get(url, data, headers={'cookie': session_cookie}).text
+    answer = requests.post(url, data, headers={'cookie': session_cookie}).text
 
     if "You gave an answer too recently" in answer:
         print('You gave an answer too recently')
         sys.exit(1)
     elif "That's not the right answer" in answer:
-        content = markdownify.markdownify(answer.split('<article class="day-desc">')[part].split('</article>')[0])
         print('That\'s not the right answer:')
-        print(content)
-        sys.exit(1)
+
+        file = open("example.txt", "w")
+        file.write(markdownify.markdownify(answer.split('<article>')[1].split('</article>')[0]))
+        file.close()
+
     elif "That's the right answer" in answer:
         print('That\'s the right answer!')
 
         with open('state.json', 'r') as f:
             puzzle_state = json.load(f)
 
-        puzzle_state['years'][year][day][int(part)] = solution
+        puzzle_state['years'][year][day][int(part)] = str(solution)
 
         with open('state.json', 'w') as f:
             json.dump(puzzle_state, f, indent=2)
@@ -128,10 +130,11 @@ def submit(day, year, part, solution):
         if part == 1:
             get_puzzle(2, day, year)
     else:
-        content = markdownify.markdownify(answer.split('<article class="day-desc">')[part].split('</article>')[0])
         print('Something went wrong:')
-        print(content)
-        sys.exit(1)
+
+        file = open("last-error.txt", "w")
+        file.write(markdownify.markdownify(answer.split('<main>')[1].split('</main>')[0]))
+        file.close()
 
 
 def run_part(path, data):
@@ -184,8 +187,10 @@ def main(argv):
     parser.add_argument('-i', '--init', action='store_true', help='Initialize a new day')
     parser.add_argument('-s', '--submit', action='store_true', help='Run and submit solution via api')
     parser.add_argument('-t', '--test', action='store_true', help='Run on test data')
-    parser.add_argument('-d', '--day', help='Day to run default is today', default=datetime.datetime.today().day)
-    parser.add_argument('-y', '--year', help='Year to run default is this year', default=datetime.datetime.today().year)
+    parser.add_argument('-d', '--day', help='Day to run default is today',
+                        default=str(datetime.datetime.today().day))
+    parser.add_argument('-y', '--year', help='Year to run default is this year',
+                        default=str(datetime.datetime.today().year))
     args = parser.parse_args()
 
     load_dotenv()
